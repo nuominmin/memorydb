@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrKeyNotFound = errors.New("key not found")
-	ErrKeyExpired  = errors.New("key expired")
-	ErrDBClosed    = errors.New("memory db is closed")
+	ErrKeyNotFound       = errors.New("key not found")
+	ErrKeyExpired        = errors.New("key expired")
+	ErrDBClosed          = errors.New("memory db is closed")
+	ErrTypeAssertionFail = errors.New("type assertion failed")
 )
 
 type item struct {
@@ -149,4 +150,23 @@ func (db *MemoryDB) Close() {
 	db.mutex.Lock()
 	db.data = make(map[string]item)
 	db.mutex.Unlock()
+}
+
+// Set 是一个泛型函数，用于设置键值对
+func Set[T any](db *MemoryDB, key string, value T, ttl int64) error {
+	return db.Set(key, value, ttl)
+}
+
+// Get 是一个泛型函数，用于获取键值对
+func Get[T any](db *MemoryDB, key string) (T, error) {
+	var zeroValue T
+	value, err := db.Get(key)
+	if err != nil {
+		return zeroValue, err
+	}
+	result, ok := value.(T)
+	if !ok {
+		return zeroValue, ErrTypeAssertionFail
+	}
+	return result, nil
 }
